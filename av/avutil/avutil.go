@@ -3,12 +3,13 @@ package avutil
 import (
 	"bytes"
 	"fmt"
-	"github.com/daneshvar/joy4/av"
 	"io"
 	"net/url"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/daneshvar/joy4/av"
 )
 
 type createURIFunc func(uri string) (w io.WriteCloser, err error)
@@ -90,7 +91,7 @@ func (self *Handlers) openUrl(u *url.URL, uri string) (r io.ReadCloser, err erro
 				}
 			}
 		}
-		err = fmt.Errorf("avutil: openUrl %s failed", uri)
+		err = fmt.Errorf("avutil: openUrl %d failed", uri)
 	} else {
 		r, err = os.Open(uri)
 	}
