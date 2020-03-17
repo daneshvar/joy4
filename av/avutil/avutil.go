@@ -1,15 +1,17 @@
 package avutil
 
 import (
-	"io"
-	"strings"
-	"fmt"
 	"bytes"
+	"fmt"
 	"github.com/daneshvar/joy4/av"
+	"io"
 	"net/url"
 	"os"
 	"path"
+	"strings"
 )
+
+type createURIFunc func(uri string) (w io.WriteCloser, err error)
 
 type HandlerDemuxer struct {
 	av.Demuxer
@@ -22,7 +24,7 @@ func (self *HandlerDemuxer) Close() error {
 
 type HandlerMuxer struct {
 	av.Muxer
-	w io.WriteCloser
+	w     io.WriteCloser
 	stage int
 }
 
@@ -54,18 +56,18 @@ func (self *HandlerMuxer) Close() (err error) {
 }
 
 type RegisterHandler struct {
-	Ext string
-	ReaderDemuxer func(io.Reader)av.Demuxer
-	WriterMuxer func(io.Writer)av.Muxer
-	UrlMuxer func(string)(bool,av.MuxCloser,error)
-	UrlDemuxer func(string)(bool,av.DemuxCloser,error)
-	UrlReader func(string)(bool,io.ReadCloser,error)
-	Probe func([]byte)bool
-	AudioEncoder func(av.CodecType)(av.AudioEncoder,error)
-	AudioDecoder func(av.AudioCodecData)(av.AudioDecoder,error)
-	ServerDemuxer func(string)(bool,av.DemuxCloser,error)
-	ServerMuxer func(string)(bool,av.MuxCloser,error)
-	CodecTypes []av.CodecType
+	Ext           string
+	ReaderDemuxer func(io.Reader) av.Demuxer
+	WriterMuxer   func(io.Writer) av.Muxer
+	UrlMuxer      func(string) (bool, av.MuxCloser, error)
+	UrlDemuxer    func(string) (bool, av.DemuxCloser, error)
+	UrlReader     func(string) (bool, io.ReadCloser, error)
+	Probe         func([]byte) bool
+	AudioEncoder  func(av.CodecType) (av.AudioEncoder, error)
+	AudioDecoder  func(av.AudioCodecData) (av.AudioDecoder, error)
+	ServerDemuxer func(string) (bool, av.DemuxCloser, error)
+	ServerMuxer   func(string) (bool, av.MuxCloser, error)
+	CodecTypes    []av.CodecType
 }
 
 type Handlers struct {
@@ -95,7 +97,7 @@ func (self *Handlers) openUrl(u *url.URL, uri string) (r io.ReadCloser, err erro
 	return
 }
 
-func (self *Handlers) createUrl(u *url.URL, uri string) (w io.WriteCloser, err error) {
+func (self *Handlers) createUrl(uri string) (w io.WriteCloser, err error) {
 	w, err = os.Create(uri)
 	return
 }
@@ -167,7 +169,7 @@ func (self *Handlers) Open(uri string) (demuxer av.DemuxCloser, err error) {
 					}
 					demuxer = &HandlerDemuxer{
 						Demuxer: handler.ReaderDemuxer(r),
-						r: r,
+						r:       r,
 					}
 					return
 				}
@@ -196,7 +198,7 @@ func (self *Handlers) Open(uri string) (demuxer av.DemuxCloser, err error) {
 			}
 			demuxer = &HandlerDemuxer{
 				Demuxer: handler.ReaderDemuxer(_r),
-				r: r,
+				r:       r,
 			}
 			return
 		}
@@ -207,12 +209,12 @@ func (self *Handlers) Open(uri string) (demuxer av.DemuxCloser, err error) {
 	return
 }
 
-func (self *Handlers) Create(uri string) (muxer av.MuxCloser, err error) {
-	_, muxer, err = self.FindCreate(uri)
+func (self *Handlers) Create(uri string, createURI createURIFunc) (muxer av.MuxCloser, err error) {
+	_, muxer, err = self.FindCreate(uri, createURI)
 	return
 }
 
-func (self *Handlers) FindCreate(uri string) (handler RegisterHandler, muxer av.MuxCloser, err error) {
+func (self *Handlers) FindCreate(uri string, createURI createURIFunc) (handler RegisterHandler, muxer av.MuxCloser, err error) {
 	listen := false
 	if strings.HasPrefix(uri, "listen:") {
 		uri = uri[len("listen:"):]
@@ -249,12 +251,12 @@ func (self *Handlers) FindCreate(uri string) (handler RegisterHandler, muxer av.
 		for _, handler = range self.handlers {
 			if handler.Ext == ext && handler.WriterMuxer != nil {
 				var w io.WriteCloser
-				if w, err = self.createUrl(u, uri); err != nil {
+				if w, err = createURI(uri); err != nil {
 					return
 				}
 				muxer = &HandlerMuxer{
 					Muxer: handler.WriterMuxer(w),
-					w: w,
+					w:     w,
 				}
 				return
 			}
@@ -272,7 +274,11 @@ func Open(url string) (demuxer av.DemuxCloser, err error) {
 }
 
 func Create(url string) (muxer av.MuxCloser, err error) {
-	return DefaultHandlers.Create(url)
+	return DefaultHandlers.Create(url, DefaultHandlers.createUrl)
+}
+
+func Create2(url string, createURI createURIFunc) (muxer av.MuxCloser, err error) {
+	return DefaultHandlers.Create(url, createURI)
 }
 
 func CopyPackets(dst av.PacketWriter, src av.PacketReader) (err error) {
