@@ -91,7 +91,7 @@ func (self *Handlers) openUrl(u *url.URL, uri string) (r io.ReadCloser, err erro
 				}
 			}
 		}
-		err = fmt.Errorf("avutil: openUrl %d failed", uri)
+		err = fmt.Errorf("avutil: openUrl %s failed", uri)
 	} else {
 		r, err = os.Open(uri)
 	}
