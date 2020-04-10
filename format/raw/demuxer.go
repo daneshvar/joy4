@@ -98,39 +98,30 @@ func (d *Demuxer) readBool() (data bool, err error) {
 }
 
 func (d *Demuxer) Streams() (streams []av.CodecData, err error) {
-	var count uint32
-	if count, err = d.readU32(); err != nil {
+	var codecType uint32
+	if codecType, err = d.readU32(); err != nil {
 		return
 	}
 
-	// streams = make([]av.CodecData, count)
-
-	for i := uint32(0); i < count; i++ {
-		var codecType uint32
-		if codecType, err = d.readU32(); err != nil {
+	switch av.CodecType(codecType) {
+	case av.H264:
+		var record []byte
+		if record, err = d.readBytes(); err != nil {
 			return
 		}
-
-		switch av.CodecType(codecType) {
-		case av.H264:
-			var record []byte
-			if record, err = d.readBytes(); err != nil {
-				return
-			}
-			var codec h264parser.CodecData
-			if codec, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(record); err != nil {
-				return
-			}
-			streams = append(streams, codec)
-		case av.AAC:
-			err = fmt.Errorf("mp4: codec type=%v is not implement", codecType)
+		var codec h264parser.CodecData
+		if codec, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(record); err != nil {
 			return
-
-		default:
-			err = fmt.Errorf("mp4: codec type=%v is not supported", codecType)
-			return
-
 		}
+		streams = append(streams, codec)
+	case av.AAC:
+		err = fmt.Errorf("mp4: codec type=%v is not implement", codecType)
+		return
+
+	default:
+		err = fmt.Errorf("mp4: codec type=%v is not supported", codecType)
+		return
+
 	}
 
 	return
