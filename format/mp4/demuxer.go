@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/daneshvar/joy4/av"
+	"github.com/daneshvar/joy4/codec/aacparser"
 	"github.com/daneshvar/joy4/codec/h264parser"
 	"github.com/daneshvar/joy4/format/mp4/mp4io"
 )
@@ -90,7 +91,10 @@ func (self *Demuxer) probe() (err error) {
 			}
 			self.streams = append(self.streams, stream)
 		} else if esds := atrack.GetElemStreamDesc(); esds != nil {
-			//TODO: add when needed
+			if stream.CodecData, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(esds.DecConfig); err != nil {
+				return
+			}
+			self.streams = append(self.streams, stream)
 		}
 	}
 

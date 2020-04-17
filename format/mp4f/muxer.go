@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/daneshvar/joy4/av"
+	"github.com/daneshvar/joy4/codec/aacparser"
 	"github.com/daneshvar/joy4/codec/h264parser"
 	"github.com/daneshvar/joy4/format/mp4/mp4io"
 	"github.com/daneshvar/joy4/format/mp4f/mp4fio"
@@ -174,8 +175,25 @@ func (self *Stream) fillTrackAtom() (err error) {
 		}
 		self.codecString = fmt.Sprintf("avc1.%02X%02X%02X", codec.RecordInfo.AVCProfileIndication, codec.RecordInfo.ProfileCompatibility, codec.RecordInfo.AVCLevelIndication)
 	} else if self.Type() == av.AAC {
-		//TODO: add when needed
-		err = fmt.Errorf("fmp4: codec type=%d invalid", self.Type())
+		codec := self.CodecData.(aacparser.CodecData)
+		self.sample.SampleDesc.MP4ADesc = &mp4io.MP4ADesc{
+			DataRefIdx:       1,
+			NumberOfChannels: int16(codec.ChannelLayout().Count()),
+			SampleSize:       16,
+			SampleRate:       float64(codec.SampleRate()),
+			Unknowns:         []mp4io.Atom{self.buildEsds(codec.MPEG4AudioConfigBytes())},
+		}
+		self.trackAtom.Header.Volume = 1
+		self.trackAtom.Header.AlternateGroup = 1
+		self.trackAtom.Header.Duration = 0
+
+		self.trackAtom.Media.Handler = &mp4io.HandlerRefer{
+			SubType: [4]byte{'s', 'o', 'u', 'n'},
+			Name:    []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'G', 'G', 0, 0, 0},
+		}
+
+		self.trackAtom.Media.Info.Sound = &mp4io.SoundMediaInfo{}
+		self.codecString = "mp4a.40.2"
 
 	} else {
 		err = fmt.Errorf("fmp4: codec type=%d invalid", self.Type())
