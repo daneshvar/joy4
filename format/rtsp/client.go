@@ -8,13 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/daneshvar/joy4/av"
-	"github.com/daneshvar/joy4/av/avutil"
-	"github.com/daneshvar/joy4/codec"
-	"github.com/daneshvar/joy4/codec/aacparser"
-	"github.com/daneshvar/joy4/codec/h264parser"
-	"github.com/daneshvar/joy4/format/rtsp/sdp"
-	"github.com/daneshvar/joy4/utils/bits/pio"
 	"io"
 	"net"
 	"net/textproto"
@@ -22,6 +15,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/daneshvar/joy4/av"
+	"github.com/daneshvar/joy4/av/avutil"
+	"github.com/daneshvar/joy4/codec"
+	"github.com/daneshvar/joy4/codec/h264parser"
+	"github.com/daneshvar/joy4/format/rtsp/sdp"
+	"github.com/daneshvar/joy4/utils/bits/pio"
 )
 
 var ErrCodecDataChange = fmt.Errorf("rtsp: codec data change, please call HandleCodecDataChange()")
@@ -758,14 +758,9 @@ func (self *Stream) makeCodecData() (err error) {
 			}
 
 		case av.AAC:
-			if len(media.Config) == 0 {
-				err = fmt.Errorf("rtsp: aac sdp config missing")
-				return
-			}
-			if self.CodecData, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(media.Config); err != nil {
-				err = fmt.Errorf("rtsp: aac sdp config invalid: %s", err)
-				return
-			}
+			//TODO: i removed this, add when needed.
+			err = fmt.Errorf("rtsp: PayloadType=%d unsupported", media.PayloadType)
+			return
 		}
 	} else {
 		switch media.PayloadType {
