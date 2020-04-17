@@ -758,7 +758,7 @@ func (self *Stream) makeCodecData() (err error) {
 			}
 
 		case av.AAC:
-			//TODO: i removed this, add when needed.
+			//TODO: add when needed.
 			err = fmt.Errorf("rtsp: PayloadType=%d unsupported", media.PayloadType)
 			return
 		}
