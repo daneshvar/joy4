@@ -16,7 +16,3 @@ func NewReaderSize(r io.ReadSeeker, size int) *Reader {
 		buf: [][]byte{buf[0:size], buf[size:]},
 	}
 }
-
-func (self *Reader) ReadAt(b []byte, off int64) (n int, err error) {
-	return
-}
