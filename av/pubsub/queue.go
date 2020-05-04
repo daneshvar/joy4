@@ -2,11 +2,11 @@
 package pubsub
 
 import (
+	"io"
+	"time"
+
 	"github.com/daneshvar/joy4/av"
 	"github.com/daneshvar/joy4/av/pktque"
-	"io"
-	"sync"
-	"time"
 )
 
 //        time
@@ -21,10 +21,10 @@ import (
 
 // One publisher and multiple subscribers thread-safe packet buffer queue.
 type Queue struct {
-	buf                      *pktque.Buf
-	head, tail               int
-	lock                     *sync.RWMutex
-	cond                     *sync.Cond
+	buf        *pktque.Buf
+	head, tail int
+	// lock                     *sync.RWMutex
+	// cond                     *sync.Cond
 	curgopcount, maxgopcount int
 	streams                  []av.CodecData
 	videoidx                 int
@@ -35,21 +35,21 @@ func NewQueue() *Queue {
 	q := &Queue{}
 	q.buf = pktque.NewBuf()
 	q.maxgopcount = 2
-	q.lock = &sync.RWMutex{}
-	q.cond = sync.NewCond(q.lock.RLocker())
+	// q.lock = &sync.RWMutex{}
+	// q.cond = sync.NewCond(q.lock.RLocker())
 	q.videoidx = -1
 	return q
 }
 
 func (self *Queue) SetMaxGopCount(n int) {
-	self.lock.Lock()
+	// self.lock.Lock()
 	self.maxgopcount = n
-	self.lock.Unlock()
+	// self.lock.Unlock()
 	return
 }
 
 func (self *Queue) WriteHeader(streams []av.CodecData) error {
-	self.lock.Lock()
+	// self.lock.Lock()
 
 	self.streams = streams
 	for i, stream := range streams {
@@ -57,9 +57,9 @@ func (self *Queue) WriteHeader(streams []av.CodecData) error {
 			self.videoidx = i
 		}
 	}
-	self.cond.Broadcast()
+	// self.cond.Broadcast()
 
-	self.lock.Unlock()
+	// self.lock.Unlock()
 
 	return nil
 }
@@ -70,18 +70,18 @@ func (self *Queue) WriteTrailer() error {
 
 // After Close() called, all QueueCursor's ReadPacket will return io.EOF.
 func (self *Queue) Close() (err error) {
-	self.lock.Lock()
+	// self.lock.Lock()
 
 	self.closed = true
-	self.cond.Broadcast()
+	// self.cond.Broadcast()
 
-	self.lock.Unlock()
+	// self.lock.Unlock()
 	return
 }
 
 // Put packet into buffer, old packets will be discared.
 func (self *Queue) WritePacket(pkt av.Packet) (err error) {
-	self.lock.Lock()
+	// self.lock.Lock()
 
 	self.buf.Push(pkt)
 	if pkt.Idx == int8(self.videoidx) && pkt.IsKeyFrame {
@@ -99,9 +99,9 @@ func (self *Queue) WritePacket(pkt av.Packet) (err error) {
 	}
 	//println("shrink", self.curgopcount, self.maxgopcount, self.buf.Head, self.buf.Tail, "count", self.buf.Count, "size", self.buf.Size)
 
-	self.cond.Broadcast()
+	// self.cond.Broadcast()
 
-	self.lock.Unlock()
+	// self.lock.Unlock()
 	return
 }
 
@@ -174,22 +174,22 @@ func (self *Queue) DelayedGopCount(n int) *QueueCursor {
 }
 
 func (self *QueueCursor) Streams() (streams []av.CodecData, err error) {
-	self.que.cond.L.Lock()
+	// self.que.cond.L.Lock()
 	for self.que.streams == nil && !self.que.closed {
-		self.que.cond.Wait()
+		// self.que.cond.Wait()
 	}
 	if self.que.streams != nil {
 		streams = self.que.streams
 	} else {
 		err = io.EOF
 	}
-	self.que.cond.L.Unlock()
+	// self.que.cond.L.Unlock()
 	return
 }
 
 // ReadPacket will not consume packets in Queue, it's just a cursor.
 func (self *QueueCursor) ReadPacket() (pkt av.Packet, err error) {
-	self.que.cond.L.Lock()
+	// self.que.cond.L.Lock()
 	buf := self.que.buf
 	if !self.gotpos {
 		self.pos = self.init(buf, self.que.videoidx)
@@ -210,8 +210,8 @@ func (self *QueueCursor) ReadPacket() (pkt av.Packet, err error) {
 			err = io.EOF
 			break
 		}
-		self.que.cond.Wait()
+		// self.que.cond.Wait()
 	}
-	self.que.cond.L.Unlock()
+	// self.que.cond.L.Unlock()
 	return
 }
