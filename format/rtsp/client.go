@@ -8,13 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/daneshvar/joy4/av"
-	"github.com/daneshvar/joy4/av/avutil"
-	"github.com/daneshvar/joy4/codec"
-	"github.com/daneshvar/joy4/codec/aacparser"
-	"github.com/daneshvar/joy4/codec/h264parser"
-	"github.com/daneshvar/joy4/format/rtsp/sdp"
-	"github.com/daneshvar/joy4/utils/bits/pio"
 	"io"
 	"net"
 	"net/textproto"
@@ -22,6 +15,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/daneshvar/joy4/av"
+	"github.com/daneshvar/joy4/av/avutil"
+	"github.com/daneshvar/joy4/codec"
+	"github.com/daneshvar/joy4/codec/aacparser"
+	"github.com/daneshvar/joy4/codec/h264parser"
+	"github.com/daneshvar/joy4/format/rtsp/sdp"
+	"github.com/daneshvar/joy4/utils/bits/pio"
 )
 
 var ErrCodecDataChange = fmt.Errorf("rtsp: codec data change, please call HandleCodecDataChange()")
@@ -98,7 +99,6 @@ func DialTimeout(uri string, timeout time.Duration) (self *Client, err error) {
 	if conn, err = dailer.Dial("tcp", URL.Host); err != nil {
 		return
 	}
-
 	u2 := *URL
 	u2.User = nil
 
@@ -106,7 +106,7 @@ func DialTimeout(uri string, timeout time.Duration) (self *Client, err error) {
 
 	self = &Client{
 		conn:            connt,
-		brconn:          bufio.NewReaderSize(connt, 256),
+		brconn:          bufio.NewReader(connt),
 		url:             URL,
 		requestUri:      u2.String(),
 		DebugRtp:        DebugRtp,
